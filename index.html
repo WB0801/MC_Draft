@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<title>司仪稿生成工具</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F6F1E7;
+    --card:#FFFCF6;
+    --ink:#3E342B;
+    --muted:#9A8C78;
+    --line:#E6DCC9;
+    --accent:#B07C4F;
+    --accent-dark:#8A5E37;
+    --accent-bg:#F1E3D2;
+    --bad:#B5503F;
+    --bad-bg:#F7E6E1;
+    --ok:#5F7A53;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans SC","Microsoft YaHei","PingFang SC",sans-serif;
+    line-height:1.6;
+    padding:40px 20px 80px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{
+    font-family:"Noto Serif SC","Microsoft YaHei",serif;
+    font-weight:600;
+    font-size:28px;
+    margin:0 0 6px;
+    letter-spacing:.5px;
+  }
+  .sub{color:var(--muted);font-size:14px;margin:0 0 36px;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:28px;
+    margin-bottom:24px;
+  }
+  .step-label{
+    display:inline-block;
+    font-size:12px;
+    color:var(--accent-dark);
+    background:var(--accent-bg);
+    border-radius:20px;
+    padding:3px 11px;
+    margin-bottom:14px;
+    letter-spacing:.5px;
+  }
+  .drop{
+    border:1.5px dashed var(--line);
+    border-radius:10px;
+    padding:34px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.drag{
+    border-color:var(--accent);
+    background:var(--accent-bg);
+  }
+  .drop p{margin:0;font-size:14px;color:var(--muted);}
+  .drop .fname{color:var(--ink);font-weight:600;margin-top:6px;}
+  input[type=file]{display:none;}
+  button{
+    font-family:inherit;
+    font-size:14px;
+    border:none;
+    border-radius:8px;
+    padding:10px 20px;
+    cursor:pointer;
+    background:var(--accent);
+    color:#fff;
+    font-weight:600;
+    transition:background .15s, transform .1s;
+  }
+  button:hover{background:var(--accent-dark);}
+  button:active{transform:scale(.98);}
+  button.ghost{
+    background:transparent;
+    color:var(--accent-dark);
+    border:1px solid var(--line);
+  }
+  button.ghost:hover{background:var(--accent-bg);border-color:var(--accent);}
+  button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px;}
+  .summary{
+    display:flex;gap:24px;margin:18px 0 0;
+    font-size:13px;color:var(--muted);flex-wrap:wrap;
+  }
+  .summary b{color:var(--ink);font-size:15px;display:block;font-weight:600;}
+  .error{
+    background:var(--bad-bg);color:var(--bad);
+    border-radius:8px;padding:12px 16px;font-size:13px;margin-top:16px;
+    white-space:pre-wrap;
+  }
+  textarea{
+    width:100%;
+    min-height:480px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:18px;
+    font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;
+    font-size:14.5px;
+    line-height:1.9;
+    color:var(--ink);
+    background:#fff;
+    resize:vertical;
+  }
+  textarea:focus{outline:none;border-color:var(--accent);}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;}
+  .out-actions{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+  .toast{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:9px 18px;border-radius:30px;
+    font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>司仪稿生成工具</h1>
+  <p class="sub">填好Excel模板，丢进来一键生成颁奖仪式司仪稿。</p>
+
+  <div class="card">
+    <span class="step-label">第一步</span>
+    <div id="drop" class="drop">
+      <p>点击或拖拽Excel文件到这里</p>
+      <div class="fname" id="fname"></div>
+    </div>
+    <input type="file" id="file" accept=".xlsx,.xls">
+    <div id="summary" class="summary" style="display:none;"></div>
+    <div id="err" class="error" style="display:none;"></div>
+    <div class="row">
+      <button id="genBtn" disabled>生成司仪稿</button>
+    </div>
+  </div>
+
+  <div class="card" id="outCard" style="display:none;">
+    <span class="step-label">第二步</span>
+    <div class="out-actions">
+      <button class="ghost" id="copyBtn">复制全文</button>
+      <button class="ghost" id="downloadBtn">下载为txt</button>
+    </div>
+    <textarea id="output" spellcheck="false"></textarea>
+    <p class="hint">类型④（班级类奖项）的统计句是按模板生成的大致框架，请自行核对调整。</p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const RANK_MAP = [
+  ['冠军',6],['第一名',6],
+  ['亚军',5],['第二名',5],
+  ['季军',4],['第三名',4],
+  ['殿军',3],['第四名',3],
+  ['优胜',2],
+  ['优秀',1],
+  ['佳作',0],
+];
+function getRank(text){
+  if(!text) return -1;
+  let best=-1;
+  for(const [kw,val] of RANK_MAP){ if(text.includes(kw)) best=Math.max(best,val); }
+  return best;
+}
+function ensureAward(text){
+  text=(text||'').trim();
+  if(!text) return '荣获';
+  return text.startsWith('荣获')?text:('荣获'+text);
+}
+function nz(v){ return (v===undefined||v===null)?'':String(v).trim(); }
+
+const FORWARD_PERSON='颁奖人';
+const BLOCK_FIELDS = ['类型','校内/校外','代表队备注','团体奖项','带队老师','顾问老师','不合影'];
+
+function parseWorkbook(wb){
+  const infoSheet = wb.Sheets['基本信息'];
+  const dataSheet = wb.Sheets['获奖资料'];
+  if(!dataSheet) throw new Error('找不到「获奖资料」这个分页，请确认是用模板填写的Excel。');
+
+  let meta = {日期:'', 活动名称:'周会', 校长职称姓名:'', 校长讲话:'是', 颁奖人先讲话:'是'};
+  if(infoSheet){
+    const rows = XLSX.utils.sheet_to_json(infoSheet,{header:1,defval:''});
+    for(let i=1;i<rows.length;i++){
+      const k=nz(rows[i][0]), v=nz(rows[i][1]);
+      if(k) meta[k]=v;
+    }
+  }
+
+  const raw = XLSX.utils.sheet_to_json(dataSheet,{defval:''});
+  if(raw.length===0) throw new Error('「获奖资料」表里没有读到任何数据行，请检查是否填在正确的分页/列里。');
+  return {meta, raw};
+}
+
+function buildBlocks(raw){
+  const blocks=[];
+  let cur=null;
+  let lastPerson='';
+  for(const r of raw){
+    const 班级=nz(r['班级']), 姓名=nz(r['姓名/班导师']), 卫生股长=nz(r['卫生股长']);
+    if(!班级 && !姓名 && !卫生股长) continue;
+
+    const rawEvent = nz(r['赛事名称']);
+    const rawPerson = nz(r[FORWARD_PERSON]);
+    if(rawPerson) lastPerson = rawPerson;
+    const person = rawPerson || lastPerson;
+
+    const isNewBlock = rawEvent!=='' || cur===null;
+    if(isNewBlock){
+      cur = {颁奖人: person, 赛事名称: rawEvent || (cur?cur.赛事名称:''), members:[]};
+      for(const f of BLOCK_FIELDS) cur[f]='';
+      blocks.push(cur);
+    } else if(rawPerson){
+      cur.颁奖人 = person;
+    }
+    for(const f of BLOCK_FIELDS){ const v=nz(r[f]); if(v) cur[f]=v; }
+    cur.members.push({班级, 姓名, 个人奖项: nz(r['个人奖项']), 卫生股长});
+  }
+  if(blocks.length===0) throw new Error('没有读到任何完整的获奖记录（班级/姓名/卫生股长都是空的）。');
+  return blocks;
+}
+
+function orderBlocks(blocks){
+  const order=[];
+  for(const b of blocks){ if(!order.includes(b.颁奖人)) order.push(b.颁奖人); }
+  const finalBlocks=[];
+  for(const person of order){
+    const own = blocks.filter(b=>b.颁奖人===person);
+    const inside = own.filter(b=>b['校内/校外']==='校内');
+    const outside = own.filter(b=>b['校内/校外']!=='校内');
+    for(const b of inside){
+      if(b['类型']==='单项'){
+        b.members = [...b.members].sort((a,c)=>getRank(a.个人奖项)-getRank(c.个人奖项));
+      }
+    }
+    finalBlocks.push(...inside, ...outside);
+  }
+  return {order, finalBlocks};
+}
+
+function teacherEnding(block){
+  if(block['不合影']==='是') return '';
+  const parts=[];
+  if(block['带队老师']) parts.push('带队老师'+block['带队老师']);
+  if(block['顾问老师']) parts.push('顾问老师'+block['顾问老师']);
+  if(parts.length) return '请'+parts.join('及')+'上台与获奖同学及主任一同合影留念。谢谢老师。';
+  return '请获奖同学与主任一同合影留念。';
+}
+
+function renderBlock(b){
+  const lines=[];
+  const 类型=b['类型'], 代表队备注=b['代表队备注'], 团体奖项=b['团体奖项'];
+  if(类型==='单项'){
+    const 是校内 = b['校内/校外']==='校内';
+    if(!是校内){
+      lines.push(代表队备注 ? `在${b.赛事名称}中，我校${代表队备注}代表` : `在${b.赛事名称}中，我校代表`);
+    } else {
+      lines.push(`在${b.赛事名称}中，`);
+    }
+    for(const m of b.members){ lines.push(`${m.班级} ${m.姓名} ${ensureAward(m.个人奖项)}`); }
+    lines.push(teacherEnding(b));
+  } else if(类型==='团体'){
+    lines.push(`在${b.赛事名称}中，我校${代表队备注||''}荣获${团体奖项}，代表同学有`);
+    for(const m of b.members){
+      lines.push(m.个人奖项 ? `${m.班级} ${m.姓名} 同时${ensureAward(m.个人奖项)}` : `${m.班级} ${m.姓名}`);
+    }
+    lines.push(teacherEnding(b));
+  } else if(类型==='横排'){
+    lines.push(`在${b.赛事名称}中，我校${代表队备注||''}代表荣获${团体奖项}，代表同学有`);
+    for(const m of b.members){ lines.push(`${m.班级} ${m.姓名}`); }
+    lines.push(teacherEnding(b));
+  } else if(类型==='班级'){
+    const n=b.members.length;
+    lines.push(`${b.赛事名称}已统计完毕，共有${n}个班级获得优异，排名不分先后，获奖班级将会授予锦旗以资鼓励。`);
+    lines.push('获得以上奖项的班级有：');
+    lines.push('格式：（班级），请班导师（班导师）及卫生股长（学生）上台领奖。');
+    if(b.members[0]) lines.push(`例子：${b.members[0].班级}，请班导师${b.members[0].姓名}及卫生股长${b.members[0].卫生股长}上台领奖。`);
+    for(const m of b.members){ lines.push(`${m.班级} ${m.姓名} ${m.卫生股长}`); }
+    if(b['不合影']!=='是') lines.push('请获奖同学及老师与主任一同合影留念。谢谢老师，谢谢主任。');
+  }
+  return lines.filter(l=>l!==undefined).join('\n');
+}
+
+function generate(meta, blocks, order){
+  const out=[];
+  const 有校长讲话 = meta['校长讲话']!=='否';
+  const 有颁奖人讲话 = meta['颁奖人先讲话']!=='否';
+
+  out.push(`${meta.活动名称||'周会'}仪式开始。`);
+  if(有校长讲话 && meta.校长职称姓名){
+    out[0] = `${meta.活动名称||'周会'}仪式开始，请${meta.校长职称姓名}上台讲话。谢谢${meta.校长职称姓名}。`;
+  }
+  if(有颁奖人讲话){
+    out.push(`请${order[0]}上台讲话，谢谢${order[0]}。请${order[0]}留步。`);
+  }
+  out.push(`现在进行颁奖仪式，请${order[0]}为我们颁奖。`);
+  out.push('');
+
+  for(let i=0;i<order.length;i++){
+    const person = order[i];
+    const personBlocks = blocks.filter(b=>b.颁奖人===person);
+    for(const b of personBlocks){
+      out.push(renderBlock(b));
+      out.push('');
+    }
+    if(i<order.length-1){
+      out.push(`谢谢主任。请${order[i+1]}上台颁奖。`);
+      out.push('');
+    }
+  }
+  out.push('谢谢主任。');
+  out.push('再次恭喜以上所有获奖同学，颁奖仪式结束。');
+  return out.join('\n');
+}
+
+const dropEl=document.getElementById('drop');
+const fileEl=document.getElementById('file');
+const fnameEl=document.getElementById('fname');
+const genBtn=document.getElementById('genBtn');
+const errEl=document.getElementById('err');
+const summaryEl=document.getElementById('summary');
+const outCard=document.getElementById('outCard');
+const outputEl=document.getElementById('output');
+const toastEl=document.getElementById('toast');
+
+let parsed=null;
+
+dropEl.addEventListener('click',()=>fileEl.click());
+dropEl.addEventListener('dragover',e=>{e.preventDefault();dropEl.classList.add('drag');});
+dropEl.addEventListener('dragleave',()=>dropEl.classList.remove('drag'));
+dropEl.addEventListener('drop',e=>{
+  e.preventDefault();dropEl.classList.remove('drag');
+  if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileEl.addEventListener('change',e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+
+function showError(msg){
+  errEl.style.display='block';
+  errEl.textContent=msg;
+  summaryEl.style.display='none';
+  genBtn.disabled=true;
+  parsed=null;
+}
+
+function handleFile(file){
+  fnameEl.textContent=file.name;
+  errEl.style.display='none';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const {meta, raw} = parseWorkbook(wb);
+      const blocks = buildBlocks(raw);
+      const {order, finalBlocks} = orderBlocks(blocks);
+      parsed = {meta, blocks:finalBlocks, order};
+      summaryEl.style.display='flex';
+      summaryEl.innerHTML = `
+        <div><b>${order.length}</b>位颁奖人</div>
+        <div><b>${finalBlocks.length}</b>个赛事区块</div>
+        <div><b>${raw.length}</b>行原始数据</div>`;
+      genBtn.disabled=false;
+    }catch(ex){
+      showError('读取失败：'+ex.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+genBtn.addEventListener('click',()=>{
+  if(!parsed) return;
+  const text = generate(parsed.meta, parsed.blocks, parsed.order);
+  outputEl.value = text;
+  outCard.style.display='block';
+  outCard.scrollIntoView({behavior:'smooth'});
+});
+
+document.getElementById('copyBtn').addEventListener('click',()=>{
+  navigator.clipboard.writeText(outputEl.value).then(()=>showToast('已复制到剪贴板'));
+});
+document.getElementById('downloadBtn').addEventListener('click',()=>{
+  const blob=new Blob([outputEl.value],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='司仪稿.txt';
+  a.click();
+});
+function showToast(msg){
+  toastEl.textContent=msg;
+  toastEl.classList.add('show');
+  setTimeout(()=>toastEl.classList.remove('show'),1600);
+}
+</script>
+</body>
+</html>
