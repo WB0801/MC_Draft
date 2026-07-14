@@ -186,12 +186,14 @@ function parseWorkbook(wb){
   const dataSheet = wb.Sheets['获奖资料'];
   if(!dataSheet) throw new Error('找不到「获奖资料」这个分页，请确认是用模板填写的Excel。');
 
-  let meta = {日期:'', 活动名称:'周会', 校长职称姓名:'', 校长讲话:'是', 颁奖人先讲话:'是'};
+  let meta = {日期:'', 活动名称:'周会', 开场讲话人:[]};
   if(infoSheet){
     const rows = XLSX.utils.sheet_to_json(infoSheet,{header:1,defval:''});
     for(let i=1;i<rows.length;i++){
       const k=nz(rows[i][0]), v=nz(rows[i][1]);
-      if(k) meta[k]=v;
+      if(!k) continue;
+      if(k==='开场讲话人'){ if(v) meta.开场讲话人.push(v); }
+      else meta[k]=v;
     }
   }
 
@@ -236,12 +238,23 @@ function orderBlocks(blocks){
     const own = blocks.filter(b=>b.颁奖人===person);
     const inside = own.filter(b=>b['校内/校外']==='校内');
     const outside = own.filter(b=>b['校内/校外']!=='校内');
+    // 单项：members内部按名次逆序
     for(const b of inside){
       if(b['类型']==='单项'){
         b.members = [...b.members].sort((a,c)=>getRank(a.个人奖项)-getRank(c.个人奖项));
       }
     }
-    finalBlocks.push(...inside, ...outside);
+    // 团体/横排：同一赛事下多个block按团体奖项名次逆序排
+    const seenEvents=[];
+    for(const b of inside){ if(!seenEvents.includes(b.赛事名称)) seenEvents.push(b.赛事名称); }
+    const insideSorted=[];
+    for(const ev of seenEvents){
+      const evBlocks=inside.filter(b=>b.赛事名称===ev);
+      const t=evBlocks[0]?.['类型'];
+      if(t==='团体'||t==='横排') evBlocks.sort((a,c)=>getRank(a['团体奖项'])-getRank(c['团体奖项']));
+      insideSorted.push(...evBlocks);
+    }
+    finalBlocks.push(...insideSorted, ...outside);
   }
   return {order, finalBlocks};
 }
@@ -268,13 +281,23 @@ function renderBlock(b){
     for(const m of b.members){ lines.push(`${m.班级} ${m.姓名} ${ensureAward(m.个人奖项)}`); }
     lines.push(teacherEnding(b));
   } else if(类型==='团体'){
-    lines.push(`在${b.赛事名称}中，我校${代表队备注||''}荣获${团体奖项}，代表同学有`);
+    const 是校内t = b['校内/校外']==='校内';
+    if(是校内t){
+      lines.push(团体奖项?`在${b.赛事名称}中，荣获${团体奖项}，代表同学有`:`在${b.赛事名称}中，代表同学有`);
+    } else {
+      lines.push(`在${b.赛事名称}中，我校${代表队备注||''}荣获${团体奖项}，代表同学有`);
+    }
     for(const m of b.members){
       lines.push(m.个人奖项 ? `${m.班级} ${m.姓名} 同时${ensureAward(m.个人奖项)}` : `${m.班级} ${m.姓名}`);
     }
     lines.push(teacherEnding(b));
   } else if(类型==='横排'){
-    lines.push(`在${b.赛事名称}中，我校${代表队备注||''}代表荣获${团体奖项}，代表同学有`);
+    const 是校内h = b['校内/校外']==='校内';
+    if(是校内h){
+      lines.push(团体奖项?`在${b.赛事名称}中，荣获${团体奖项}，代表同学有`:`在${b.赛事名称}中，代表同学有`);
+    } else {
+      lines.push(`在${b.赛事名称}中，我校${代表队备注||''}代表荣获${团体奖项}，代表同学有`);
+    }
     for(const m of b.members){ lines.push(`${m.班级} ${m.姓名}`); }
     lines.push(teacherEnding(b));
   } else if(类型==='班级'){
@@ -291,15 +314,24 @@ function renderBlock(b){
 
 function generate(meta, blocks, order){
   const out=[];
-  const 有校长讲话 = meta['校长讲话']!=='否';
-  const 有颁奖人讲话 = meta['颁奖人先讲话']!=='否';
+  const 讲话人 = (meta.开场讲话人||[]).filter(p=>p);
+  const 活动 = meta.活动名称||'周会';
 
-  out.push(`${meta.活动名称||'周会'}仪式开始。`);
-  if(有校长讲话 && meta.校长职称姓名){
-    out[0] = `${meta.活动名称||'周会'}仪式开始，请${meta.校长职称姓名}上台讲话。谢谢${meta.校长职称姓名}。`;
+  // 开场句：有讲话人才加"请XX上台讲话"，否则直接开始
+  if(讲话人.length===0){
+    out.push(`${活动}仪式开始。`);
+  } else {
+    out.push(`${活动}仪式开始，请${讲话人[0]}上台讲话。谢谢${讲话人[0]}。`);
+    for(let i=1;i<讲话人.length;i++){
+      out.push(`请${讲话人[i]}上台讲话，谢谢${讲话人[i]}。`);
+    }
   }
-  if(有颁奖人讲话){
-    out.push(`请${order[0]}上台讲话，谢谢${order[0]}。请${order[0]}留步。`);
+  // 最后一个讲话人若也是第一位颁奖人，加「请留步」；否则直接请第一位颁奖人
+  const 最后讲话人 = 讲话人[讲话人.length-1]||'';
+  if(最后讲话人 && 最后讲话人===order[0]){
+    out.push(`请${order[0]}留步。`);
+  } else if(最后讲话人 && 最后讲话人!==order[0]){
+    // 讲话人和颁奖人是不同人，单独请颁奖人上台
   }
   out.push(`现在进行颁奖仪式，请${order[0]}为我们颁奖。`);
   out.push('');
