@@ -1,434 +1,816 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>司仪稿生成工具</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>华仁周会司仪稿生成器 v2.4</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root{
-    --bg:#F6F1E7;
-    --card:#FFFCF6;
-    --ink:#3E342B;
-    --muted:#9A8C78;
-    --line:#E6DCC9;
-    --accent:#B07C4F;
-    --accent-dark:#8A5E37;
-    --accent-bg:#F1E3D2;
-    --bad:#B5503F;
-    --bad-bg:#F7E6E1;
-    --ok:#5F7A53;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--ink);
-    font-family:"Noto Sans SC","Microsoft YaHei","PingFang SC",sans-serif;
-    line-height:1.6;
-    padding:40px 20px 80px;
-  }
-  .wrap{max-width:760px;margin:0 auto;}
-  h1{
-    font-family:"Noto Serif SC","Microsoft YaHei",serif;
-    font-weight:600;
-    font-size:28px;
-    margin:0 0 6px;
-    letter-spacing:.5px;
-  }
-  .sub{color:var(--muted);font-size:14px;margin:0 0 36px;}
-  .card{
-    background:var(--card);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:28px;
-    margin-bottom:24px;
-  }
-  .step-label{
-    display:inline-block;
-    font-size:12px;
-    color:var(--accent-dark);
-    background:var(--accent-bg);
-    border-radius:20px;
-    padding:3px 11px;
-    margin-bottom:14px;
-    letter-spacing:.5px;
-  }
-  .drop{
-    border:1.5px dashed var(--line);
-    border-radius:10px;
-    padding:34px 16px;
-    text-align:center;
-    cursor:pointer;
-    transition:border-color .15s, background .15s;
-  }
-  .drop:hover, .drop.drag{
-    border-color:var(--accent);
-    background:var(--accent-bg);
-  }
-  .drop p{margin:0;font-size:14px;color:var(--muted);}
-  .drop .fname{color:var(--ink);font-weight:600;margin-top:6px;}
-  input[type=file]{display:none;}
-  button{
-    font-family:inherit;
-    font-size:14px;
-    border:none;
-    border-radius:8px;
-    padding:10px 20px;
-    cursor:pointer;
-    background:var(--accent);
-    color:#fff;
-    font-weight:600;
-    transition:background .15s, transform .1s;
-  }
-  button:hover{background:var(--accent-dark);}
-  button:active{transform:scale(.98);}
-  button.ghost{
-    background:transparent;
-    color:var(--accent-dark);
-    border:1px solid var(--line);
-  }
-  button.ghost:hover{background:var(--accent-bg);border-color:var(--accent);}
-  button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px;}
-  .summary{
-    display:flex;gap:24px;margin:18px 0 0;
-    font-size:13px;color:var(--muted);flex-wrap:wrap;
-  }
-  .summary b{color:var(--ink);font-size:15px;display:block;font-weight:600;}
-  .error{
-    background:var(--bad-bg);color:var(--bad);
-    border-radius:8px;padding:12px 16px;font-size:13px;margin-top:16px;
-    white-space:pre-wrap;
-  }
-  textarea{
-    width:100%;
-    min-height:480px;
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:18px;
-    font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;
-    font-size:14.5px;
-    line-height:1.9;
-    color:var(--ink);
-    background:#fff;
-    resize:vertical;
-  }
-  textarea:focus{outline:none;border-color:var(--accent);}
-  .hint{font-size:12px;color:var(--muted);margin-top:10px;}
-  .out-actions{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
-  .toast{
-    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
-    background:var(--ink);color:#fff;padding:9px 18px;border-radius:30px;
-    font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;
-  }
-  .toast.show{opacity:1;}
+:root{
+ --bg:#f4f7fb;--card:#fff;--ink:#253445;--muted:#718096;--line:#dce5ee;
+ --accent:#355c7d;--accent2:#537da3;--soft:#edf4fa;--warn:#9b6a22;--warnbg:#fff8e7;
+ --bad:#a84949;--badbg:#fff0f0;--good:#267158;--goodbg:#eef9f4;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif}
+header{position:sticky;top:0;z-index:8;background:#ffffffee;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.head{max-width:1180px;margin:auto;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:20px;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:2px}
+main{max-width:1180px;margin:18px auto;padding:0 16px 50px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:15px;box-shadow:0 5px 18px rgba(42,61,80,.05)}
+.step{display:inline-flex;align-items:center;background:var(--soft);color:var(--accent);font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px;margin-bottom:10px}
+h2{font-size:17px;margin:0 0 12px}.note{font-size:12px;color:var(--muted);line-height:1.65}
+.drop{border:1.5px dashed #b9c9d8;border-radius:13px;padding:30px 15px;text-align:center;cursor:pointer;transition:.15s}
+.drop:hover,.drop.drag{border-color:var(--accent2);background:#f8fbfe}.drop b{display:block;margin-bottom:5px}.fname{font-weight:700;color:var(--accent);margin-top:7px}
+input[type=file]{display:none}
+.btn{border:0;border-radius:10px;padding:9px 13px;cursor:pointer;font-weight:650;font-size:13px}
+.primary{background:var(--accent);color:white}.primary:hover{background:#284b69}
+.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}.ghost:hover{background:var(--soft)}
+.danger{background:#fff1f1;color:var(--bad);border:1px solid #efcccc}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.push{margin-left:auto}
+.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}@media(max-width:700px){.summary{grid-template-columns:1fr 1fr}}
+.kpi{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:10px}.kpi b{font-size:19px;display:block}.kpi span{font-size:11px;color:var(--muted)}
+.hidden{display:none!important}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+input,select,textarea{font:inherit;color:var(--ink)}
+input,select{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 9px;background:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:720px){.grid2{grid-template-columns:1fr}}
+.settingBox{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fbfdff;margin-top:10px}
+.rowitem{display:grid;grid-template-columns:44px 1.25fr 1fr 44px;gap:7px;align-items:end;margin-top:7px}
+.deptitem{display:grid;grid-template-columns:54px 1fr 1.6fr .75fr 82px;gap:7px;align-items:end;margin-top:7px}
+@media(max-width:820px){.rowitem,.deptitem{grid-template-columns:1fr}.rowitem .order,.deptitem .order{display:none}}
+.miniBtns{display:flex;gap:3px}.iconbtn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px;cursor:pointer}
+.issue{padding:9px 11px;border-radius:9px;margin:6px 0;font-size:12px;line-height:1.55}.issue.warn{background:var(--warnbg);color:var(--warn)}.issue.bad{background:var(--badbg);color:var(--bad)}.issue.good{background:var(--goodbg);color:var(--good)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 10px;cursor:pointer;font-size:12px}.tab.active{background:var(--accent);color:#fff}
+textarea#output{width:100%;min-height:560px;border:1px solid var(--line);border-radius:12px;padding:16px;line-height:1.9;font-size:14px;resize:vertical;background:#fbfdff}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:520px}table{border-collapse:collapse;width:100%;min-width:900px;font-size:11px}th,td{border-bottom:1px solid var(--line);padding:6px;vertical-align:top;text-align:left}th{position:sticky;top:0;background:#edf4fa;z-index:1}
+.sectionTitle{font-weight:750;margin-top:14px;margin-bottom:5px}.tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:999px;background:var(--soft);color:var(--accent);margin-right:4px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>司仪稿生成工具</h1>
-  <p class="sub">填好Excel模板，丢进来一键生成颁奖仪式司仪稿。</p>
+<header><div class="head"><div><h1>华仁周会司仪稿生成器</h1><div class="sub">v2.4 · 合影边界修正 / 班导师代表句式</div></div><button class="btn ghost" onclick="resetAll()">重新开始</button></div></header>
+<main>
 
-  <div class="card">
-    <span class="step-label">第一步</span>
-    <div id="drop" class="drop">
-      <p>点击或拖拽Excel文件到这里</p>
-      <div class="fname" id="fname"></div>
-    </div>
-    <input type="file" id="file" accept=".xlsx,.xls">
-    <div id="summary" class="summary" style="display:none;"></div>
-    <div id="err" class="error" style="display:none;"></div>
-    <div class="row">
-      <button id="genBtn" disabled>生成司仪稿</button>
-    </div>
-  </div>
-
-  <div class="card" id="outCard" style="display:none;">
-    <span class="step-label">第二步</span>
-    <div class="out-actions">
-      <button class="ghost" id="copyBtn">复制全文</button>
-      <button class="ghost" id="downloadBtn">下载为txt</button>
-    </div>
-    <textarea id="output" spellcheck="false"></textarea>
-    <p class="hint">类型④（班级类奖项）的统计句是按模板生成的大致框架，请自行核对调整。</p>
-  </div>
+<div class="card">
+ <span class="step">第一步</span>
+ <h2>上传周会 Excel</h2>
+ <div id="drop" class="drop">
+   <b>点击或拖拽 Excel 到这里</b>
+   <div class="note">继续使用 v2.2 标准模板即可。v2.4 修正同一比赛合并后的「不合影」判断：以该比赛最后一行为准。</div>
+   <div id="fname" class="fname"></div>
+ </div>
+ <input id="file" type="file" accept=".xlsx,.xls">
+ <div id="summary" class="summary hidden"></div>
+ <div id="readIssues" style="margin-top:10px"></div>
 </div>
-<div class="toast" id="toast"></div>
 
+<div id="settingsCard" class="card hidden">
+ <span class="step">第二步</span>
+ <h2>确认这次周会流程</h2>
+ <div class="grid2">
+   <div><label>日期</label><input id="dateInput" type="date"></div>
+   <div><label>流程</label><select id="flowInput">
+     <option>先讲话后颁奖</option><option>先颁奖后讲话</option><option>纯讲话</option><option>纯颁奖</option>
+   </select></div>
+ </div>
+ <div class="settingBox">
+   <div class="toolbar"><b>讲话人</b><button class="btn ghost push" onclick="addSpeakerRow()">＋讲话人</button></div>
+   <div id="speakerRows"></div>
+   <div class="note" style="margin-top:7px">不自动处理「留步」，需要时直接在最终稿手动补。v2.1 会把「比赛名称再次出现」视为新队伍/新区块，空白列只在该区块内沿用。</div>
+ </div>
+ <div class="settingBox">
+   <div class="toolbar"><b>部门颁奖顺序</b><span class="note">可用 ↑ ↓ 临时调整，不必回 Excel。</span></div>
+   <div id="deptRows"></div>
+ </div>
+ <div class="toolbar" style="margin-top:12px">
+   <button class="btn primary" onclick="generateScript()">生成司仪稿</button>
+ </div>
+</div>
+
+<div id="outputCard" class="card hidden">
+ <span class="step">第三步</span>
+ <div class="toolbar">
+   <h2 style="margin:0">检查与成稿</h2>
+   <button class="btn ghost push" onclick="copyText()">复制全文</button>
+   <button class="btn ghost" onclick="downloadText()">下载 TXT</button>
+ </div>
+ <div class="tabs" style="margin-top:12px">
+   <button class="tab active" onclick="switchTab('script',this)">司仪稿</button>
+   <button class="tab" onclick="switchTab('issues',this)">异常检查</button>
+   <button class="tab" onclick="switchTab('parsed',this)">解析资料</button>
+ </div>
+ <div id="tab-script"><textarea id="output" spellcheck="false"></textarea></div>
+ <div id="tab-issues" class="hidden"></div>
+ <div id="tab-parsed" class="hidden"></div>
+</div>
+
+</main>
 <script>
-const RANK_MAP = [
-  ['冠军',6],['第一名',6],
-  ['亚军',5],['第二名',5],
-  ['季军',4],['第三名',4],
-  ['殿军',3],['第四名',3],
-  ['优胜',2],
-  ['优秀',1],
-  ['佳作',0],
-];
-function getRank(text){
-  if(!text) return -1;
-  let best=-1;
-  for(const [kw,val] of RANK_MAP){ if(text.includes(kw)) best=Math.max(best,val); }
-  return best;
+const $=id=>document.getElementById(id);
+const nz=v=>(v===undefined||v===null)?'':String(v).trim();
+const uniq=a=>[...new Set(a.filter(x=>nz(x)!=='').map(x=>nz(x)))];
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+
+let state={meta:{date:'',activity:'周会',flow:'先讲话后颁奖'},speakers:[],departments:[],rows:[],events:[],issues:[],legacy:false};
+
+const drop=$('drop'), file=$('file');
+drop.onclick=()=>file.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};
+drop.ondragleave=()=>drop.classList.remove('drag');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');if(e.dataTransfer.files[0])readFile(e.dataTransfer.files[0])};
+file.onchange=e=>{if(e.target.files[0])readFile(e.target.files[0])};
+
+function excelDateToISO(v){
+ if(!v)return'';
+ if(v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+ let s=nz(v);
+ if(/^\d{8}$/.test(s))return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+ if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)){let [y,m,d]=s.split('-');return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`}
+ if(typeof v==='number'){
+   const dc=XLSX.SSF.parse_date_code(v);if(dc)return `${dc.y}-${String(dc.m).padStart(2,'0')}-${String(dc.d).padStart(2,'0')}`;
+ }
+ return'';
 }
-function ensureAward(text){
-  text=(text||'').trim();
-  if(!text) return '荣获';
-  return text.startsWith('荣获')?text:('荣获'+text);
+function normalizeDept(option,other){
+ option=nz(option);other=nz(other);
+ if(option==='其他')return other||'其他';
+ if(option==='免填'||option==='')return '免填';
+ return option;
 }
-function nz(v){ return (v===undefined||v===null)?'':String(v).trim(); }
-
-const FORWARD_PERSON='颁奖人';
-const BLOCK_FIELDS = ['类型','校内/校外','代表队备注','团体奖项','带队老师','顾问老师','不合影'];
-
-function parseWorkbook(wb){
-  const infoSheet = wb.Sheets['基本信息'];
-  const dataSheet = wb.Sheets['获奖资料'];
-  if(!dataSheet) throw new Error('找不到「获奖资料」这个分页，请确认是用模板填写的Excel。');
-
-  let meta = {日期:'', 活动名称:'周会', 开场讲话人:[]};
-  if(infoSheet){
-    const rows = XLSX.utils.sheet_to_json(infoSheet,{header:1,defval:''});
-    for(let i=1;i<rows.length;i++){
-      const k=nz(rows[i][0]), v=nz(rows[i][1]);
-      if(!k) continue;
-      if(k==='开场讲话人'){ if(v) meta.开场讲话人.push(v); }
-      else meta[k]=v;
-    }
-  }
-
-  const raw = XLSX.utils.sheet_to_json(dataSheet,{defval:''});
-  if(raw.length===0) throw new Error('「获奖资料」表里没有读到任何数据行，请检查是否填在正确的分页/列里。');
-  return {meta, raw};
+function inferDeptFromPresenter(s){
+ s=nz(s);
+ const keys=['教务处','联课处','训导处','体育处','资源中心','资讯中心'];
+ for(const k of keys)if(s.includes(k))return k;
+ return '免填';
 }
-
-function buildBlocks(raw){
-  const blocks=[];
-  let cur=null;
-  let lastPerson='';
-  for(const r of raw){
-    const 班级=nz(r['班级']), 姓名=nz(r['姓名/班导师']), 卫生股长=nz(r['卫生股长']);
-    if(!班级 && !姓名 && !卫生股长) continue;
-
-    const rawEvent = nz(r['赛事名称']);
-    const rawPerson = nz(r[FORWARD_PERSON]);
-    if(rawPerson) lastPerson = rawPerson;
-    const person = rawPerson || lastPerson;
-
-    const isNewBlock = rawEvent!=='' || cur===null;
-    if(isNewBlock){
-      cur = {颁奖人: person, 赛事名称: rawEvent || (cur?cur.赛事名称:''), members:[]};
-      for(const f of BLOCK_FIELDS) cur[f]='';
-      blocks.push(cur);
-    } else if(rawPerson){
-      cur.颁奖人 = person;
-    }
-    for(const f of BLOCK_FIELDS){ const v=nz(r[f]); if(v) cur[f]=v; }
-    cur.members.push({班级, 姓名, 个人奖项: nz(r['个人奖项']), 卫生股长});
-  }
-  if(blocks.length===0) throw new Error('没有读到任何完整的获奖记录（班级/姓名/卫生股长都是空的）。');
-  return blocks;
+function inferRole(full){
+ full=nz(full);
+ if(full.includes('副校长'))return'副校长';
+ if(full.includes('校长'))return'校长';
+ if(full.includes('主任'))return'主任';
+ if(full.includes('董事长'))return'董事长';
+ if(full.includes('老师')||full.includes('师'))return'老师';
+ if(full.includes('同学'))return'同学';
+ return'颁奖人';
+}
+function sheetRows(wb,name){
+ const sh=wb.Sheets[name];if(!sh)return[];
+ return XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false});
+}
+function objectRows(wb,name){
+ const sh=wb.Sheets[name];if(!sh)return[];
+ return XLSX.utils.sheet_to_json(sh,{defval:'',raw:false});
 }
 
-function orderBlocks(blocks){
-  const order=[];
-  for(const b of blocks){ if(!order.includes(b.颁奖人)) order.push(b.颁奖人); }
-  const finalBlocks=[];
-  for(const person of order){
-    const own = blocks.filter(b=>b.颁奖人===person);
-    const inside = own.filter(b=>b['校内/校外']==='校内');
-    const outside = own.filter(b=>b['校内/校外']!=='校内');
-    // 单项：members内部按名次逆序
-    for(const b of inside){
-      if(b['类型']==='单项'){
-        b.members = [...b.members].sort((a,c)=>getRank(a.个人奖项)-getRank(c.个人奖项));
-      }
-    }
-    // 团体/横排：同一赛事下多个block按团体奖项名次逆序排
-    const seenEvents=[];
-    for(const b of inside){ if(!seenEvents.includes(b.赛事名称)) seenEvents.push(b.赛事名称); }
-    const insideSorted=[];
-    for(const ev of seenEvents){
-      const evBlocks=inside.filter(b=>b.赛事名称===ev);
-      const t=evBlocks[0]?.['类型'];
-      if(t==='团体'||t==='横排') evBlocks.sort((a,c)=>getRank(a['团体奖项'])-getRank(c['团体奖项']));
-      insideSorted.push(...evBlocks);
-    }
-    finalBlocks.push(...insideSorted, ...outside);
-  }
-  return {order, finalBlocks};
+function parseSetupV2(wb){
+ const rows=sheetRows(wb,'周会设置');
+ if(!rows.length)return false;
+ for(let r=0;r<rows.length;r++){
+   const a=nz(rows[r][0]),b=rows[r][1];
+   if(a==='日期')state.meta.date=excelDateToISO(b)||nz(b);
+   if(a==='活动名称')state.meta.activity=nz(b)||'周会';
+   if(a==='流程')state.meta.flow=nz(b)||'先讲话后颁奖';
+ }
+ // 讲话人表头
+ let sr=rows.findIndex(r=>nz(r[0])==='顺序'&&nz(r[1])==='上台完整称呼');
+ if(sr>=0){
+   for(let i=sr+1;i<rows.length;i++){
+     let order=nz(rows[i][0]),full=nz(rows[i][1]),thanks=nz(rows[i][2]),action=nz(rows[i][3]);
+     if(!order&&!full&&!thanks)break;
+     if(full)state.speakers.push({order:Number(order)||999,full,thanks:thanks||full,action:action||'讲话'});
+   }
+ }
+ // 部门设置表头通常从F列起
+ let dr=rows.findIndex(r=>nz(r[5])==='顺序'&&nz(r[6])==='部门');
+ if(dr>=0){
+   for(let i=dr+1;i<rows.length;i++){
+     let order=nz(rows[i][5]),option=nz(rows[i][6]),other=nz(rows[i][7]),presenter=nz(rows[i][8]),role=nz(rows[i][9]);
+     if(!order&&!option&&!other&&!presenter&&!role)break;
+     if(option||other){
+       state.departments.push({order:Number(order)||999,option,other,name:normalizeDept(option,other),presenter,role:role||inferRole(presenter)});
+     }
+   }
+ }
+ return true;
 }
 
-function teacherEnding(block){
-  if(block['不合影']==='是') return '';
-  const parts=[];
-  if(block['带队老师']) parts.push('带队老师'+block['带队老师']);
-  if(block['顾问老师']) parts.push('顾问老师'+block['顾问老师']);
-  if(parts.length) return '请'+parts.join('及')+'上台与获奖同学及主任一同合影留念。谢谢老师。';
-  return '请获奖同学与主任一同合影留念。';
+function parseLegacySetup(wb){
+ const rows=sheetRows(wb,'基本信息');if(!rows.length)return;
+ const speakers=[];
+ let firstPresenterSpeech=false;
+ for(let i=1;i<rows.length;i++){
+   const k=nz(rows[i][0]),v=nz(rows[i][1]);
+   if(k==='日期')state.meta.date=excelDateToISO(v)||v;
+   else if(k==='活动名称')state.meta.activity=v||'周会';
+   else if(k==='校长职称姓名'&&v)state._legacyPrincipal=v;
+   else if(k==='校长讲话'&&v==='是'&&state._legacyPrincipal)speakers.push({order:99,full:state._legacyPrincipal,thanks:state._legacyPrincipal,action:'讲话'});
+   else if(k==='颁奖人先讲话'&&v==='是')firstPresenterSpeech=true;
+   else if(k==='开场讲话人'&&v)speakers.push({order:speakers.length+1,full:v,thanks:v,action:'讲话'});
+ }
+ state.speakers.push(...speakers);
+ state._legacyFirstPresenterSpeech=firstPresenterSpeech;
+ state.meta.flow='先讲话后颁奖';
 }
 
-function renderBlock(b){
-  const lines=[];
-  const 类型=b['类型'], 代表队备注=b['代表队备注'], 团体奖项=b['团体奖项'];
-  if(类型==='单项'){
-    const 是校内 = b['校内/校外']==='校内';
-    if(!是校内){
-      lines.push(代表队备注 ? `在${b.赛事名称}中，我校${代表队备注}代表` : `在${b.赛事名称}中，我校代表`);
-    } else {
-      lines.push(`在${b.赛事名称}中，`);
-    }
-    for(const m of b.members){ lines.push(`${m.班级} ${m.姓名} ${ensureAward(m.个人奖项)}`); }
-    lines.push(teacherEnding(b));
-  } else if(类型==='团体'){
-    const 是校内t = b['校内/校外']==='校内';
-    if(是校内t){
-      lines.push(团体奖项?`在${b.赛事名称}中，荣获${团体奖项}，代表同学有`:`在${b.赛事名称}中，代表同学有`);
-    } else {
-      lines.push(`在${b.赛事名称}中，我校${代表队备注||''}荣获${团体奖项}，代表同学有`);
-    }
-    for(const m of b.members){
-      lines.push(m.个人奖项 ? `${m.班级} ${m.姓名} 同时${ensureAward(m.个人奖项)}` : `${m.班级} ${m.姓名}`);
-    }
-    lines.push(teacherEnding(b));
-  } else if(类型==='横排'){
-    const 是校内h = b['校内/校外']==='校内';
-    if(是校内h){
-      lines.push(团体奖项?`在${b.赛事名称}中，荣获${团体奖项}，代表同学有`:`在${b.赛事名称}中，代表同学有`);
-    } else {
-      lines.push(`在${b.赛事名称}中，我校${代表队备注||''}代表荣获${团体奖项}，代表同学有`);
-    }
-    for(const m of b.members){ lines.push(`${m.班级} ${m.姓名}`); }
-    lines.push(teacherEnding(b));
-  } else if(类型==='班级'){
-    const n=b.members.length;
-    lines.push(`${b.赛事名称}已统计完毕，共有${n}个班级获得优异，排名不分先后，获奖班级将会授予锦旗以资鼓励。`);
-    lines.push('获得以上奖项的班级有：');
-    lines.push('格式：（班级），请班导师（班导师）及卫生股长（学生）上台领奖。');
-    if(b.members[0]) lines.push(`例子：${b.members[0].班级}，请班导师${b.members[0].姓名}及卫生股长${b.members[0].卫生股长}上台领奖。`);
-    for(const m of b.members){ lines.push(`${m.班级} ${m.姓名} ${m.卫生股长}`); }
-    if(b['不合影']!=='是') lines.push('请获奖同学及老师与主任一同合影留念。谢谢老师，谢谢主任。');
-  }
-  return lines.filter(l=>l!==undefined).join('\n');
+const aliases={
+ seq:['序号'],id:['学号'],cls:['班级','班别'],name:['学生姓名','姓名/班导师','姓名','名字'],
+ classTeacher:['班导师'],
+ comp:['比赛','赛事名称','比赛名称'],award:['奖项/个人奖项','个人奖项','奖项','成绩','名次'],
+ unit:['社团/校队/单位','代表队备注','社团','校队','单位'],
+ teacher:['顾问老师/带队老师','带队老师/顾问老师'],date:['比赛日期/奖项公布日期','比赛日期/奖项公布日期','比赛日期','日期'],
+ dept:['部门'],otherDept:['其他部门名称'],nature:['校内/校外','性质'],type:['类型'],group:['组别'],
+ teamAward:['团体奖项'],studentRole:['学生身份（可选）','学生身份','领奖身份','卫生股长'],sanitation:['卫生股长'],extra:['补充句','特殊补充句'],noPhoto:['不合影'],
+ presenter:['颁奖人'],leader:['带队老师'],advisor:['顾问老师']
+};
+function findVal(r,list){
+ for(const h of list)if(Object.prototype.hasOwnProperty.call(r,h)&&nz(r[h])!=='')return nz(r[h]);
+ return'';
+}
+function normalizeType(t){
+ t=nz(t);
+ if(t==='横排')return'团体名单';
+ if(['单项','团体','团体名单','班级','自定义'].includes(t))return t;
+ return t||'单项';
+}
+function combineLegacyTeacher(r){
+ const direct=findVal(r,aliases.teacher);if(direct)return direct;
+ const a=findVal(r,aliases.leader),b=findVal(r,aliases.advisor);
+ let p=[];if(a)p.push('带队老师'+a);if(b)p.push('顾问老师'+b);return p.join('及');
 }
 
-function generate(meta, blocks, order){
-  const out=[];
-  const 讲话人 = (meta.开场讲话人||[]).filter(p=>p);
-  const 活动 = meta.活动名称||'周会';
+function parseAwardRows(wb){
+ const raw=objectRows(wb,'获奖资料');
+ if(!raw.length)throw new Error('找不到「获奖资料」或里面没有资料。');
+ const firstHeaders=Object.keys(raw[0]||{});
+ const isLegacy=firstHeaders.includes('赛事名称')||firstHeaders.includes('颁奖人');
+ const legacyClassLayout=firstHeaders.includes('姓名/班导师') && firstHeaders.includes('卫生股长') && !firstHeaders.includes('班导师');
+ state.legacy=isLegacy;
 
-  // 开场句：有讲话人才加"请XX上台讲话"，否则直接开始
-  if(讲话人.length===0){
-    out.push(`${活动}仪式开始。`);
-  } else {
-    out.push(`${活动}仪式开始，请${讲话人[0]}上台讲话。谢谢${讲话人[0]}。`);
-    for(let i=1;i<讲话人.length;i++){
-      out.push(`请${讲话人[i]}上台讲话，谢谢${讲话人[i]}。`);
-    }
-  }
-  // 最后一个讲话人若也是第一位颁奖人，加「请留步」；否则直接请第一位颁奖人
-  const 最后讲话人 = 讲话人[讲话人.length-1]||'';
-  if(最后讲话人 && 最后讲话人===order[0]){
-    out.push(`请${order[0]}留步。`);
-  } else if(最后讲话人 && 最后讲话人!==order[0]){
-    // 讲话人和颁奖人是不同人，单独请颁奖人上台
-  }
-  out.push(`现在进行颁奖仪式，请${order[0]}为我们颁奖。`);
-  out.push('');
+ let currentDept='',currentNature='',currentComp='',currentType='';
+ let currentBlock=null,events=[],normRows=[],presenterDeptMap=new Map();
+ let carryUnit='',carryTeacher='',carryGroup='',carryTeamAward='';
 
-  for(let i=0;i<order.length;i++){
-    const person = order[i];
-    const personBlocks = blocks.filter(b=>b.颁奖人===person);
-    for(const b of personBlocks){
-      out.push(renderBlock(b));
-      out.push('');
-    }
-    if(i<order.length-1){
-      out.push(`谢谢主任。请${order[i+1]}上台颁奖。`);
-      out.push('');
-    }
-  }
-  out.push('谢谢主任。');
-  out.push('再次恭喜以上所有获奖同学，颁奖仪式结束。');
-  return out.join('\n');
+ for(let i=0;i<raw.length;i++){
+   const r=raw[i];
+   const legacyPresenter=findVal(r,aliases.presenter);
+
+   const rawDept=findVal(r,aliases.dept), otherDept=findVal(r,aliases.otherDept);
+   if(rawDept){
+     currentDept=normalizeDept(rawDept,otherDept);
+   }else if(legacyPresenter){
+     currentDept=inferDeptFromPresenter(legacyPresenter);
+   }else if(!currentDept){
+     currentDept='免填';
+   }
+
+   if(legacyPresenter){
+     if(!presenterDeptMap.has(currentDept)){
+       presenterDeptMap.set(currentDept,legacyPresenter);
+       if(!state.departments.some(d=>d.name===currentDept)){
+         state.departments.push({
+           order:state.departments.length+1,option:currentDept,other:'',
+           name:currentDept,presenter:legacyPresenter,role:inferRole(legacyPresenter)
+         });
+       }
+     }
+   }
+
+   const rawNature=findVal(r,aliases.nature);
+   if(rawNature)currentNature=rawNature;
+
+   const typeRaw=findVal(r,aliases.type);
+   if(typeRaw)currentType=normalizeType(typeRaw);
+   const effectiveType=typeRaw?normalizeType(typeRaw):(currentType||'单项');
+
+   const rawComp=findVal(r,aliases.comp);
+   if(rawComp)currentComp=rawComp;
+
+   const cls=findVal(r,aliases.cls);
+   let name=findVal(r,aliases.name);
+   const award=findVal(r,aliases.award);
+   const rawUnit=findVal(r,aliases.unit);
+   const rawTeacher=combineLegacyTeacher(r);
+   const rawClassTeacher=findVal(r,aliases.classTeacher);
+   const rawGroup=findVal(r,aliases.group);
+   const rawTeamAward=findVal(r,aliases.teamAward);
+   let studentRole=findVal(r,aliases.studentRole);
+   const sanitation=findVal(r,aliases.sanitation);
+   const extra=findVal(r,aliases.extra);
+   const noPhoto=findVal(r,aliases.noPhoto);
+   const id=findVal(r,aliases.id),date=findVal(r,aliases.date);
+
+   if(!currentComp && !(cls||name||award||extra))continue;
+   if(!currentNature) state.issues.push({kind:'bad',msg:`第 ${i+2} 行没有「校内/校外」，工具不会猜。`});
+   if(currentDept==='免填'&&!legacyPresenter&&!rawDept) state.issues.push({kind:'warn',msg:`第 ${i+2} 行没有部门，已放入「免填」。`});
+
+   // 先算这一行在继承后的实际控制值
+   const effectiveUnit = rawUnit || carryUnit;
+   const effectiveTeacher = rawTeacher || carryTeacher;
+   const effectiveGroup = rawGroup || carryGroup;
+   const effectiveTeamAward = rawTeamAward || carryTeamAward;
+
+   let startsNewBlock = currentBlock===null;
+
+   if(currentBlock){
+     // 部门 / 性质 / 比赛真的改变，一定开新区块
+     if(currentDept!==currentBlock.dept || currentNature!==currentBlock.nature) startsNewBlock=true;
+     if(rawComp && rawComp!==currentBlock.competition) startsNewBlock=true;
+
+     // 类型明确改变，也开新区块
+     if(typeRaw && effectiveType!==currentBlock.typeHint) startsNewBlock=true;
+
+     // 关键修正：
+     // 单项 / 班级：同一个比赛就算每一行都重复比赛名称，也继续视为同一比赛。
+     // 团体 / 团体名单：同赛事只有团体奖或单位明确改变时，才代表另一支队伍/新区块。
+     if(rawComp && rawComp===currentBlock.competition && ['团体','团体名单'].includes(effectiveType)){
+       const blockTeamAward = currentBlock.controlTeamAward || '';
+       const blockUnit = currentBlock.controlUnit || '';
+       if(rawTeamAward && blockTeamAward && rawTeamAward!==blockTeamAward) startsNewBlock=true;
+       if(rawUnit && blockUnit && rawUnit!==blockUnit) startsNewBlock=true;
+     }
+   }
+
+   if(startsNewBlock){
+     // 新区块的可继承资料从这一行重新起算
+     carryUnit=rawUnit;
+     carryTeacher=rawTeacher;
+     carryGroup=rawGroup;
+     carryTeamAward=rawTeamAward;
+
+     currentBlock={
+       key:`block-${events.length}`,
+       dept:currentDept,nature:currentNature,competition:currentComp,
+       order:events.length,rows:[],types:[],extras:[],
+       noPhoto:noPhoto==='是',
+       typeHint:effectiveType,
+       controlUnit:rawUnit,
+       controlTeamAward:rawTeamAward
+     };
+     events.push(currentBlock);
+   }else{
+     // 同一区块内部沿用
+     if(rawUnit)carryUnit=rawUnit;
+     if(rawTeacher)carryTeacher=rawTeacher;
+     if(rawGroup)carryGroup=rawGroup;
+     if(rawTeamAward)carryTeamAward=rawTeamAward;
+     // 同一比赛已经合并为一个区块，因此「不合影」最终以该区块最后一行为准。
+     // 最后一行留空 = 该比赛结束后合影；最后一行填「是」 = 整个比赛不合影。
+     currentBlock.noPhoto=(noPhoto==='是');
+   }
+
+   if(typeRaw)currentBlock.types.push(normalizeType(typeRaw));
+   else if(currentType)currentBlock.types.push(currentType);
+
+   if(extra)currentBlock.extras.push(extra);
+
+   let classTeacher=rawClassTeacher;
+   if(legacyClassLayout && effectiveType==='班级'){
+     classTeacher=name;
+     name=sanitation;
+     studentRole=studentRole||'卫生股长';
+   }
+
+   const nr={
+     sourceOrder:i,id,cls,name,award,
+     unit:rawUnit||carryUnit,
+     teacher:rawTeacher||carryTeacher,
+     classTeacher,
+     date,
+     group:rawGroup||carryGroup,
+     teamAward:rawTeamAward||carryTeamAward,
+     studentRole,
+     sanitation,
+     type:effectiveType,
+     dept:currentDept,nature:currentNature,competition:currentComp
+   };
+
+   currentBlock.rows.push(nr);
+   normRows.push(nr);
+ }
+
+ for(const ev of events){
+   ev.type=ev.types.find(Boolean)||ev.typeHint||'单项';
+   ev.extras=uniq(ev.extras);
+   const ts=uniq(ev.types);
+   if(ts.length>1){
+     state.issues.push({kind:'warn',msg:`「${ev.competition}」同一区块出现多个类型：${ts.join('、')}。当前按 ${ev.type} 处理。`});
+   }
+ }
+
+ state.rows=normRows;
+ state.events=events;
+
+ if(state.legacy){
+   if(state._legacyFirstPresenterSpeech && state.departments[0]?.presenter){
+     state.speakers.unshift({order:0,full:state.departments[0].presenter,thanks:state.departments[0].presenter,action:'讲话'});
+   }
+ }
+
+ for(const d of uniq(events.map(e=>e.dept))){
+   if(!state.departments.some(x=>x.name===d)){
+     state.departments.push({order:state.departments.length+1,option:d,other:'',name:d,presenter:'',role:''});
+   }
+ }
+}
+function readFile(f){
+ $('fname').textContent=f.name;
+ const rd=new FileReader();
+ rd.onload=e=>{
+   try{
+     state={meta:{date:'',activity:'周会',flow:'先讲话后颁奖'},speakers:[],departments:[],rows:[],events:[],issues:[],legacy:false};
+     const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+     const hasV2=parseSetupV2(wb);
+     if(!hasV2)parseLegacySetup(wb);
+     parseAwardRows(wb);
+     state.speakers.sort((a,b)=>a.order-b.order);
+     state.departments.sort((a,b)=>a.order-b.order);
+     renderAfterRead();
+   }catch(err){
+     $('summary').classList.add('hidden');$('settingsCard').classList.add('hidden');$('outputCard').classList.add('hidden');
+     $('readIssues').innerHTML=`<div class="issue bad">读取失败：${esc(err.message)}</div>`;
+   }
+ };
+ rd.readAsArrayBuffer(f);
 }
 
-const dropEl=document.getElementById('drop');
-const fileEl=document.getElementById('file');
-const fnameEl=document.getElementById('fname');
-const genBtn=document.getElementById('genBtn');
-const errEl=document.getElementById('err');
-const summaryEl=document.getElementById('summary');
-const outCard=document.getElementById('outCard');
-const outputEl=document.getElementById('output');
-const toastEl=document.getElementById('toast');
-
-let parsed=null;
-
-dropEl.addEventListener('click',()=>fileEl.click());
-dropEl.addEventListener('dragover',e=>{e.preventDefault();dropEl.classList.add('drag');});
-dropEl.addEventListener('dragleave',()=>dropEl.classList.remove('drag'));
-dropEl.addEventListener('drop',e=>{
-  e.preventDefault();dropEl.classList.remove('drag');
-  if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-});
-fileEl.addEventListener('change',e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
-
-function showError(msg){
-  errEl.style.display='block';
-  errEl.textContent=msg;
-  summaryEl.style.display='none';
-  genBtn.disabled=true;
-  parsed=null;
+function renderAfterRead(){
+ const depts=uniq(state.events.map(e=>e.dept));
+ const people=uniq(state.rows.filter(r=>r.name).map(r=>(r.id||'')+'|'+r.cls+'|'+r.name)).length;
+ $('summary').classList.remove('hidden');
+ $('summary').innerHTML=`
+ <div class="kpi"><b>${depts.length}</b><span>有资料部门</span></div>
+ <div class="kpi"><b>${state.events.length}</b><span>赛事区块</span></div>
+ <div class="kpi"><b>${people}</b><span>人物记录</span></div>
+ <div class="kpi"><b>${state.issues.length}</b><span>读取提醒</span></div>`;
+ $('readIssues').innerHTML=(state.legacy?`<div class="issue warn">检测到旧版 Excel。v2.4 已进行兼容读取，建议日后改用 v2.2 标准模板。</div>`:'')+
+ (state.issues.length?state.issues.slice(0,5).map(x=>`<div class="issue ${x.kind}">${esc(x.msg)}</div>`).join(''):`<div class="issue good">资料读取成功。</div>`);
+ $('settingsCard').classList.remove('hidden');
+ $('dateInput').value=state.meta.date||'';
+ $('flowInput').value=['先讲话后颁奖','先颁奖后讲话','纯讲话','纯颁奖'].includes(state.meta.flow)?state.meta.flow:'先讲话后颁奖';
+ renderSpeakerRows();renderDeptRows();
 }
 
-function handleFile(file){
-  fnameEl.textContent=file.name;
-  errEl.style.display='none';
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try{
-      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-      const {meta, raw} = parseWorkbook(wb);
-      const blocks = buildBlocks(raw);
-      const {order, finalBlocks} = orderBlocks(blocks);
-      parsed = {meta, blocks:finalBlocks, order};
-      summaryEl.style.display='flex';
-      summaryEl.innerHTML = `
-        <div><b>${order.length}</b>位颁奖人</div>
-        <div><b>${finalBlocks.length}</b>个赛事区块</div>
-        <div><b>${raw.length}</b>行原始数据</div>`;
-      genBtn.disabled=false;
-    }catch(ex){
-      showError('读取失败：'+ex.message);
-    }
-  };
-  reader.readAsArrayBuffer(file);
+function renderSpeakerRows(){
+ const box=$('speakerRows');box.innerHTML='';
+ state.speakers.forEach((s,i)=>{
+   const d=document.createElement('div');d.className='rowitem';d.innerHTML=`
+    <div class="order"><label>顺序</label><input value="${i+1}" disabled></div>
+    <div><label>上台完整称呼</label><input value="${esc(s.full)}" oninput="state.speakers[${i}].full=this.value"></div>
+    <div><label>感谢时称呼</label><input value="${esc(s.thanks)}" oninput="state.speakers[${i}].thanks=this.value"></div>
+    <div><button class="iconbtn" title="删除" onclick="state.speakers.splice(${i},1);renderSpeakerRows()">×</button></div>`;
+   box.appendChild(d);
+ });
+}
+function addSpeakerRow(){state.speakers.push({order:999,full:'',thanks:'',action:'讲话'});renderSpeakerRows()}
+
+function renderDeptRows(){
+ const box=$('deptRows');box.innerHTML='';
+ state.departments.forEach((d,i)=>{
+   const used=state.events.some(e=>e.dept===d.name);
+   const el=document.createElement('div');el.className='deptitem';el.innerHTML=`
+    <div class="order"><label>顺序</label><input value="${i+1}" disabled></div>
+    <div><label>部门 ${used?'<span class="tag">有奖项</span>':''}</label><input value="${esc(d.name)}" oninput="renameDept(${i},this.value)"></div>
+    <div><label>颁奖人完整称呼</label><input value="${esc(d.presenter)}" oninput="state.departments[${i}].presenter=this.value"></div>
+    <div><label>合影/致谢称谓</label><input value="${esc(d.role)}" oninput="state.departments[${i}].role=this.value"></div>
+    <div class="miniBtns"><button class="iconbtn" onclick="moveDept(${i},-1)">↑</button><button class="iconbtn" onclick="moveDept(${i},1)">↓</button></div>`;
+   box.appendChild(el);
+ });
+}
+function renameDept(i,v){
+ const old=state.departments[i].name;state.departments[i].name=v;
+ state.events.forEach(e=>{if(e.dept===old)e.dept=v});state.rows.forEach(r=>{if(r.dept===old)r.dept=v});
+}
+function moveDept(i,delta){let j=i+delta;if(j<0||j>=state.departments.length)return;[state.departments[i],state.departments[j]]=[state.departments[j],state.departments[i]];renderDeptRows()}
+
+function cleanUnit(s){
+ s=nz(s).replace(/^我校/,'').replace(/代表$/,'').trim();return s;
+}
+function representative(unit){unit=cleanUnit(unit);return unit?`我校${unit}代表`:'我校代表'}
+function normalizeAwardText(s){return nz(s).replace(/\r?\n+/g,'、').replace(/\s*&\s*/g,'、').replace(/、+/g,'、')}
+function awardPhrase(s){
+ s=normalizeAwardText(s);
+ if(!s)return'';
+ if(s.startsWith('荣获'))return s;
+ return '荣获'+s;
+}
+const cnumMap={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+function chineseNum(s){
+ if(/^\d+$/.test(s))return Number(s);if(s==='十')return 10;
+ if(s.startsWith('十'))return 10+(cnumMap[s[1]]||0);
+ if(s.endsWith('十'))return (cnumMap[s[0]]||0)*10;
+ if(s.includes('十'))return (cnumMap[s[0]]||0)*10+(cnumMap[s[2]]||0);
+ return cnumMap[s]||null;
+}
+function rankScore(text){
+ let s=normalizeAwardText(text),scores=[];
+ let re=/第([一二三四五六七八九十\d]+)名/g,m;while((m=re.exec(s))){let n=chineseNum(m[1]);if(n)scores.push(100-n)}
+ re=/([一二三四五六七八九十\d]+)等奖/g;while((m=re.exec(s))){let n=chineseNum(m[1]);if(n)scores.push(100-n)}
+ if(/入选/.test(s))scores.push(10);if(/佳作/.test(s))scores.push(20);if(/优秀/.test(s))scores.push(25);if(/优胜/.test(s))scores.push(30);if(/特优/.test(s))scores.push(40);
+ if(/第五名/.test(s))scores.push(50);if(/殿军|第四名/.test(s))scores.push(60);if(/季军|第三名|铜奖/.test(s))scores.push(70);if(/亚军|第二名|银奖/.test(s))scores.push(80);if(/冠军|第一名|金奖/.test(s))scores.push(90);
+ return scores.length?Math.max(...scores):null;
+}
+function mergePeople(rows,nature,issues,eventName){
+ let list=[],map=new Map();
+ for(const r of rows){
+   const key=(r.id?`id:${r.id}`:`n:${r.cls}|${r.name}`)+'|'+(r.group||'');
+   if(!map.has(key)){let x={...r,awards:[],first:r.sourceOrder};map.set(key,x);list.push(x)}
+   if(r.award)map.get(key).awards.push(normalizeAwardText(r.award));
+ }
+ list.forEach(x=>x.award=uniq(x.awards).join('、'));
+ if(nature==='校内'){
+   const unknown=list.filter(x=>x.award&&rankScore(x.award)===null);
+   if(unknown.length)issues.push({kind:'warn',msg:`「${eventName}」有 ${unknown.length} 笔校内奖项无法判断高低，已保留它们的相对顺序。`});
+   list.sort((a,b)=>{
+     const ra=rankScore(a.award),rb=rankScore(b.award);
+     if(ra===null&&rb===null)return a.first-b.first;if(ra===null)return -1;if(rb===null)return 1;return ra-rb||a.first-b.first;
+   });
+ }else list.sort((a,b)=>a.first-b.first);
+ return list;
+}
+function groupBy(rows,keyFn){
+ const arr=[],map=new Map();for(const r of rows){let k=keyFn(r);if(!map.has(k)){let g={key:k,rows:[],first:r.sourceOrder};map.set(k,g);arr.push(g)}map.get(k).rows.push(r)}return arr.sort((a,b)=>a.first-b.first);
+}
+function teacherIdentityKey(s){
+ return nz(s).replace(/^班导师/,'').replace(/^带队老师/,'').replace(/^顾问老师/,'').replace(/\s+/g,'');
+}
+function classTeacherLabel(s){
+ s=nz(s);if(!s)return'';
+ return s.startsWith('班导师')?s:`班导师 ${s}`;
+}
+function photoEnding(ev,role){
+ if(ev.noPhoto)return'';
+
+ const hasClassTeacher=ev.rows.some(r=>nz(r.classTeacher)!=='');
+ const otherTeachers=uniq(ev.rows.map(r=>r.teacher));
+
+ if(otherTeachers.length){
+   let teacherText=otherTeachers.length===1
+     ? otherTeachers[0]
+     : otherTeachers.slice(0,-1).join('、')+'及'+otherTeachers[otherTeachers.length-1];
+
+   if(hasClassTeacher){
+     return `请${teacherText}、获奖同学及班导师与${role||'颁奖人'}一同合影留念。谢谢老师。`;
+   }
+   return `请${teacherText}上台与获奖同学及${role||'颁奖人'}一同合影留念。谢谢老师。`;
+ }
+
+ if(hasClassTeacher){
+   return `请获奖同学及班导师与${role||'颁奖人'}一同合影留念。谢谢老师。`;
+ }
+
+ return `请获奖同学与${role||'颁奖人'}一同合影留念。`;
+}
+function localStart(comp,group,showCompetition){
+ if(group)return showCompetition?`在${comp}，${group}中，`:`在${group}中，`;
+ return showCompetition?`在${comp}中，`:'';
+}
+function externalStart(comp,group,unit,showCompetition){
+ const rep=representative(unit);
+ if(group)return showCompetition?`在${comp}${group}中，${rep}`:`在${group}中，${rep}`;
+ return showCompetition?`在${comp}中，${rep}`:rep;
+}
+function renderSingle(ev,role,issues,ctx={}){
+ let out=[],groups=groupBy(ev.rows,r=>r.group||'');
+
+ groups.forEach((g,idx)=>{
+   const unit=uniq(g.rows.map(r=>r.unit))[0]||'';
+   const showCompetition = idx===0 && !ctx.sameCompetition;
+
+   if(ev.nature==='校外'){
+     const start = externalStart(ev.competition,g.key,unit,showCompetition);
+     if(start)out.push(start);
+   }else{
+     const start = localStart(ev.competition,g.key,showCompetition);
+     if(start)out.push(start);
+   }
+
+   const people=mergePeople(g.rows,ev.nature,issues,ev.competition);
+
+   people.forEach(p=>{
+     if(!p.name&&!p.cls)return;
+     if(!p.award)issues.push({kind:'bad',msg:`「${ev.competition}」的 ${p.cls} ${p.name} 没有填写个人奖项。`});
+
+     // 有班导师时，代表的是「班级获奖」，学生是代表同学。
+     // 按学校实际司仪稿句式输出，不再写成「学生本人荣获」。
+     if(p.classTeacher){
+       let line=`${p.cls||''}${awardPhrase(p.award)}`;
+       if(p.name) line+=`，代表同学 ${p.name}`;
+       line+=` 及${classTeacherLabel(p.classTeacher)}`;
+       out.push(line);
+     }else{
+       out.push(`${[p.cls,p.name].filter(Boolean).join(' ')} ${awardPhrase(p.award)}`.trim());
+     }
+   });
+ });
+
+ ev.extras.forEach(x=>out.push(x));
+ const end=photoEnding(ev,role);if(end)out.push(end);
+ return out.join('\n');
+}
+function renderTeamLike(ev,role,issues,isList,ctx={}){
+ let out=[];
+ // v2.1 中，一个 Excel「比赛区块」本身就是一支队伍/一个奖项区块。
+ // 这里仍允许区块内部因组别或团体奖改变而分成小块，但不会把空白栏拆成「我校代表」幽灵队。
+ const blocks=groupBy(ev.rows,r=>[r.group||'',r.unit||'',r.teamAward||''].join('||'));
+
+ if(ev.nature==='校内'){
+   blocks.sort((a,b)=>{
+     const aa=uniq(a.rows.map(r=>r.teamAward))[0]||'';
+     const bb=uniq(b.rows.map(r=>r.teamAward))[0]||'';
+     const ra=rankScore(aa),rb=rankScore(bb);
+     if(ra===null&&rb===null)return a.first-b.first;
+     if(ra===null)return -1;if(rb===null)return 1;
+     return ra-rb||a.first-b.first;
+   });
+ }
+
+ blocks.forEach((b,idx)=>{
+   const group=uniq(b.rows.map(r=>r.group))[0]||'';
+   const unit=uniq(b.rows.map(r=>r.unit))[0]||'';
+   const ta=uniq(b.rows.map(r=>r.teamAward))[0]||'';
+
+   if(!ta)issues.push({kind:'warn',msg:`「${ev.competition}」是${isList?'团体名单':'团体'}类型，但没有填写团体奖项。`});
+
+   const showCompetition = idx===0 && !ctx.sameCompetition;
+   if(ev.nature==='校外'){
+     const start=externalStart(ev.competition,group,unit,showCompetition);
+     out.push(`${start}${ta?`荣获${ta}`:''}，代表同学有`);
+   }else{
+     const start=localStart(ev.competition,group,showCompetition);
+     out.push(`${start}${ta?`荣获${ta}`:''}，代表同学有`);
+   }
+
+   const people=mergePeople(b.rows,'校外',issues,ev.competition);
+   people.forEach(p=>{
+     let line=[p.cls,p.name].filter(Boolean).join(' ');
+     if(!isList&&p.award)line+=` 同时${awardPhrase(p.award)}`;
+     out.push(line);
+   });
+ });
+
+ ev.extras.forEach(x=>out.push(x));
+ const end=photoEnding(ev,role);if(end)out.push(end);
+ return out.join('\n');
 }
 
-genBtn.addEventListener('click',()=>{
-  if(!parsed) return;
-  const text = generate(parsed.meta, parsed.blocks, parsed.order);
-  outputEl.value = text;
-  outCard.style.display='block';
-  outCard.scrollIntoView({behavior:'smooth'});
-});
+function renderClass(ev,role,issues,ctx={}){
+ let out=[ctx.sameCompetition?'获奖班级有：':`在${ev.competition}中，获奖班级有：`];
 
-document.getElementById('copyBtn').addEventListener('click',()=>{
-  navigator.clipboard.writeText(outputEl.value).then(()=>showToast('已复制到剪贴板'));
-});
-document.getElementById('downloadBtn').addEventListener('click',()=>{
-  const blob=new Blob([outputEl.value],{type:'text/plain;charset=utf-8'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='司仪稿.txt';
-  a.click();
-});
-function showToast(msg){
-  toastEl.textContent=msg;
-  toastEl.classList.add('show');
-  setTimeout(()=>toastEl.classList.remove('show'),1600);
+ ev.rows.forEach(r=>{
+   let line=r.cls||'';
+   if(r.award)line+=`${line?' ':''}${awardPhrase(r.award)}`;
+
+   const companions=[];
+   if(r.classTeacher)companions.push(classTeacherLabel(r.classTeacher));
+   if(r.name){
+     const roleText=nz(r.studentRole);
+     companions.push(roleText?`${roleText}${r.name}`:`${r.name}同学`);
+   }
+   if(companions.length)line+=`，请${companions.join('及')}上台领奖`;
+   out.push(line+'。');
+ });
+
+ ev.extras.forEach(x=>out.push(x));
+
+ if(!ev.noPhoto){
+   const otherTeachers=uniq(ev.rows.map(r=>r.teacher));
+   if(otherTeachers.length){
+     const t=otherTeachers.length===1?otherTeachers[0]:otherTeachers.slice(0,-1).join('、')+'及'+otherTeachers[otherTeachers.length-1];
+     out.push(`请${t}上台与获奖同学及老师、${role||'颁奖人'}一同合影留念。谢谢老师。`);
+   }else{
+     out.push(`请获奖同学及老师与${role||'颁奖人'}一同合影留念。谢谢老师。`);
+   }
+ }
+ return out.join('\n');
 }
+function renderCustom(ev){return ev.extras.length?ev.extras.join('\n'):`【${ev.competition}：请在「补充句」填写自定义司仪文字】`}
+
+function renderEvent(ev,role,issues,ctx={}){
+ if(ev.type==='团体')return renderTeamLike(ev,role,issues,false,ctx);
+ if(ev.type==='团体名单')return renderTeamLike(ev,role,issues,true,ctx);
+ if(ev.type==='班级')return renderClass(ev,role,issues,ctx);
+ if(ev.type==='自定义')return renderCustom(ev);
+ return renderSingle(ev,role,issues,ctx);
+}
+function departmentSettings(){
+ return state.departments.map((d,i)=>({...d,order:i+1,role:nz(d.role)||inferRole(d.presenter)}));
+}
+function sortLocalBlocks(evs){
+ // 保持比赛首次出现顺序；同一比赛若是多个团体区块，则按团体奖由低到高。
+ const groups=groupBy(evs,e=>e.competition);
+ const out=[];
+ groups.forEach(g=>{
+   const xs=[...g.rows];
+   if(xs.every(e=>['团体','团体名单'].includes(e.type))){
+     xs.sort((a,b)=>{
+       const aa=uniq(a.rows.map(r=>r.teamAward))[0]||'';
+       const bb=uniq(b.rows.map(r=>r.teamAward))[0]||'';
+       const ra=rankScore(aa),rb=rankScore(bb);
+       if(ra===null&&rb===null)return a.order-b.order;
+       if(ra===null)return -1;if(rb===null)return 1;
+       return ra-rb||a.order-b.order;
+     });
+   }else{
+     xs.sort((a,b)=>a.order-b.order);
+   }
+   out.push(...xs);
+ });
+ return out;
+}
+
+function buildAwards(issues){
+ const settings=departmentSettings(),parts=[];
+ const usedSettings=settings.filter(d=>state.events.some(e=>e.dept===d.name));
+
+ usedSettings.forEach((d,di)=>{
+   const evs=state.events.filter(e=>e.dept===d.name);
+   const local=sortLocalBlocks(evs.filter(e=>e.nature==='校内').sort((a,b)=>a.order-b.order));
+   const external=evs.filter(e=>e.nature==='校外').sort((a,b)=>a.order-b.order);
+   const unknown=evs.filter(e=>!['校内','校外'].includes(e.nature));
+
+   if(unknown.length)issues.push({kind:'bad',msg:`【${d.name}】有 ${unknown.length} 个赛事没有正确填写校内/校外，未生成。`});
+   if(!d.presenter)issues.push({kind:'bad',msg:`【${d.name}】有奖项但没有设置颁奖人。`});
+
+   const role=d.role||inferRole(d.presenter);
+   let block=[];
+
+   if(di===0){
+     if(d.presenter)block.push(`现在进行颁奖仪式，请${d.presenter}为我们颁奖。`);
+   }else{
+     const prev=usedSettings[di-1];
+     if(d.presenter){
+       if(prev.presenter&&prev.presenter===d.presenter)block.push(`接下来继续由${d.presenter}为我们颁奖。`);
+       else block.push(`接下来，请${d.presenter}上台颁奖。`);
+     }
+   }
+
+   let prevEv=null;
+   [...local,...external].forEach(ev=>{
+     const sameCompetition = !!prevEv &&
+       prevEv.nature===ev.nature &&
+       prevEv.competition===ev.competition;
+     block.push(renderEvent(ev,role,issues,{sameCompetition}));
+     prevEv=ev;
+   });
+
+   if(d.presenter)block.push(`谢谢${role}。`);
+   parts.push(block.filter(Boolean).join('\n\n'));
+ });
+
+ return parts.join('\n\n');
+}
+function buildSpeeches(){
+ return state.speakers.filter(s=>nz(s.full)).map(s=>`请${s.full}上台${s.action||'讲话'}。谢谢${s.thanks||s.full}。`).join('\n');
+}
+function dateTitle(){
+ const v=$('dateInput').value;if(!v)return state.meta.activity||'周会';
+ const [y,m,d]=v.split('-');return `${y}年${Number(m)}月${Number(d)}日${state.meta.activity||'周会'}`;
+}
+function generateScript(){
+ state.meta.date=$('dateInput').value;state.meta.flow=$('flowInput').value;
+ let issues=[...state.issues],speech=buildSpeeches(),awards=buildAwards(issues),out=[];
+ out.push(dateTitle(),'');
+ out.push(`${state.meta.activity||'周会'}仪式开始。`,'');
+ const flow=state.meta.flow;
+ if(flow==='先讲话后颁奖'){if(speech)out.push(speech,'');if(awards)out.push(awards,'','再次恭喜以上所有获奖同学，颁奖仪式结束。','')}
+ if(flow==='先颁奖后讲话'){if(awards)out.push(awards,'','再次恭喜以上所有获奖同学，颁奖仪式结束。','');if(speech)out.push(speech,'')}
+ if(flow==='纯讲话'){if(speech)out.push(speech,'')}
+ if(flow==='纯颁奖'){if(awards)out.push(awards,'','再次恭喜以上所有获奖同学，颁奖仪式结束。','')}
+ out.push(`${state.meta.activity||'周会'}仪式结束。`);
+ $('output').value=out.join('\n').replace(/\n{3,}/g,'\n\n');
+ renderIssues(issues);renderParsed();$('outputCard').classList.remove('hidden');switchTab('script',document.querySelector('.tab'));
+ $('outputCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function renderIssues(issues){
+ $('tab-issues').innerHTML=issues.length?issues.map(x=>`<div class="issue ${x.kind}">${esc(x.msg)}</div>`).join(''):`<div class="issue good">没有发现明显异常。</div>`;
+}
+function renderParsed(){
+ const rows=state.events.map((ev,i)=>({
+   区块:i+1,部门:ev.dept,性质:ev.nature,类型:ev.type,比赛:ev.competition,
+   团体奖:uniq(ev.rows.map(r=>r.teamAward)).join('、'),
+   人数:uniq(ev.rows.map(r=>r.id||`${r.cls}|${r.name}`)).length,
+   单位:uniq(ev.rows.map(r=>r.unit)).join('、'),
+   班导师:uniq(ev.rows.map(r=>r.classTeacher)).join('、'),
+   老师:uniq(ev.rows.map(r=>r.teacher)).join('、'),
+   合影:ev.noPhoto?'不合影':'合影'
+ }));
+ $('tab-parsed').innerHTML=`<div class="tablewrap"><table><thead><tr>
+ <th>#</th><th>部门</th><th>性质</th><th>类型</th><th>比赛</th><th>团体奖</th><th>人数</th><th>单位</th><th>班导师</th><th>顾问/带队</th><th>合影</th>
+ </tr></thead><tbody>${rows.map(r=>`<tr>
+ <td>${r.区块}</td><td>${esc(r.部门)}</td><td>${esc(r.性质)}</td><td>${esc(r.类型)}</td>
+ <td>${esc(r.比赛)}</td><td>${esc(r.团体奖)}</td><td>${r.人数}</td><td>${esc(r.单位)}</td><td>${esc(r.班导师)}</td><td>${esc(r.老师)}</td><td>${esc(r.合影)}</td>
+ </tr>`).join('')}</tbody></table></div>`;
+}
+function switchTab(name,btn){
+ ['script','issues','parsed'].forEach(x=>$('tab-'+x).classList.toggle('hidden',x!==name));
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');
+}
+async function copyText(){try{await navigator.clipboard.writeText($('output').value);alert('已复制全文')}catch(e){$('output').select();document.execCommand('copy');alert('已复制全文')}}
+function downloadText(){
+ const blob=new Blob([$('output').value],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download='周会司仪稿.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function resetAll(){location.reload()}
 </script>
 </body>
 </html>
