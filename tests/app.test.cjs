@@ -186,4 +186,28 @@ test('unknown local team awards emit a reminder',()=>{
   a.run('parseAwardRows(fixture);generateScript()');assert.match(a.element('tab-issues').innerHTML,/无法判断/);
 });
 
+test('Word download exports the current manually edited text without regenerating',async()=>{
+  const a=app();a.setup();a.run('generateScript()');
+  a.context.MCWordExport=require('../word-export.js');
+  const source='2026年11月11日周会\n\n请老师留步。手动改稿 A & B <确认>。';
+  a.element('output').value=source;a.element('dateInput').value='2026-12-01';
+  let blob,anchor;
+  a.context.URL={createObjectURL(value){blob=value;return 'blob:test'},revokeObjectURL(){}};
+  a.context.document.createElement=()=>({click(){anchor=this}});
+  a.run('downloadWord()');
+  assert.equal(a.element('output').value,source);
+  assert.equal(anchor.download,'2026年11月11日周会_司仪稿.docx');
+  assert.equal(blob.type,'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  const bytes=Buffer.from(await blob.arrayBuffer());assert.equal(bytes.readUInt32LE(0),0x04034b50);
+  assert.ok(bytes.includes(Buffer.from('请老师留步。手动改稿 A &amp; B &lt;确认&gt;。')));
+});
+test('Word download explains empty input without starting a download',()=>{
+  const a=app(),messages=[];a.context.MCWordExport=require('../word-export.js');a.context.alert=x=>messages.push(x);
+  a.element('output').value=' \n\t';a.run('downloadWord()');assert.equal(messages.length,1);assert.match(messages[0],/生成或输入司仪稿/);
+});
+test('Word module load failure leaves the draft intact and explains recovery',()=>{
+  const a=app(),messages=[];a.element('output').value='手动稿';a.context.alert=x=>messages.push(x);
+  a.run('downloadWord()');assert.equal(a.element('output').value,'手动稿');assert.match(messages[0],/刷新/);
+});
+
 module.exports={app};
