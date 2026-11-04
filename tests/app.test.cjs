@@ -210,4 +210,67 @@ test('Word module load failure leaves the draft intact and explains recovery',()
   a.run('downloadWord()');assert.equal(a.element('output').value,'手动稿');assert.match(messages[0],/刷新/);
 });
 
+function classGroupWorkbook(a,rows){
+ a.context.fixture={Sheets:{'获奖资料':rows.map((r,i)=>({'学号':'G'+i,'班级':r[0],'学生姓名':'测试代表'+i,'比赛':r[1],'组别':r[2],'奖项/个人奖项':r[3],'不合影':r[4],...(i===0?{'部门':'体育处','校内/校外':'校内','类型':'班级'}:{})}))}};
+ a.run("parseAwardRows(fixture);state.departments[0].presenter='体育处测试老师';state.departments[0].role='主任'");
+ a.element('flowInput').value='纯颁奖';
+}
+test('class groups stay separate and retain their Excel order before rank sorting',()=>{
+ const a=app();classGroupWorkbook(a,[
+  ['初中冠军班','足球赛','初中男子组','冠军','是'],['初中殿军班','足球赛','','殿军','是'],
+  ['高中冠军班','足球赛','高中男子组','冠军','是'],['高中殿军班','足球赛','','殿军',''],
+ ]);a.run('generateScript()');const text=a.element('output').value;
+ assert.equal(a.run('state.events.length'),2);
+ for(const group of ['初中男子组','高中男子组'])assert.match(text,new RegExp(group));
+ assert.ok(text.indexOf('初中殿军班')<text.indexOf('初中冠军班'));
+ assert.ok(text.indexOf('初中冠军班')<text.indexOf('高中男子组'));
+ assert.ok(text.indexOf('高中殿军班')<text.indexOf('高中冠军班'));
+});
+test('class group changes work with a blank competition cell and repeated group labels do not split',()=>{
+ const a=app();classGroupWorkbook(a,[
+  ['甲班','足球赛','初中组','殿军','是'],['乙班','','初中组','冠军','是'],
+  ['丙班','','高中组','殿军','是'],['丁班','','','冠军',''],
+ ]);
+ assert.equal(a.run('state.events.length'),2);assert.equal(a.run('state.events[1].competition'),'足球赛');
+ assert.equal(a.run('state.events[1].rows[1].group'),'高中组');
+});
+test('photo endings follow the last source row of each class group before sorting',()=>{
+ const a=app();classGroupWorkbook(a,[
+  ['甲冠军班','排球赛','男子组','冠军','是'],['甲殿军班','排球赛','','殿军',''],
+  ['乙冠军班','排球赛','女子组','冠军',''],['乙殿军班','排球赛','','殿军','是'],
+ ]);a.run('generateScript()');const text=a.element('output').value;
+ assert.equal((text.match(/一同合影留念/g)||[]).length,1);
+ assert.ok(text.indexOf('一同合影留念')<text.indexOf('女子组'));
+});
+test('class photo wording does not invent accompanying teachers',()=>{
+ const a=app();classGroupWorkbook(a,[['甲班','整洁比赛','初中组','冠军','']]);a.run('generateScript()');
+ const text=a.element('output').value;assert.match(text,/请获奖同学与主任一同合影留念/);assert.doesNotMatch(text,/获奖同学及老师|谢谢老师/);
+});
+test('a class teacher is still included in class photo wording',()=>{
+ const a=app();classGroupWorkbook(a,[['甲班','整洁比赛','初中组','冠军','']]);a.context.fixture.Sheets['获奖资料'][0]['班导师']='测试班导师';
+ a.run('parseAwardRows(fixture);generateScript()');assert.match(a.element('output').value,/获奖同学及班导师与主任一同合影留念/);
+});
+test('ungrouped class competitions remain one block',()=>{
+ const a=app();classGroupWorkbook(a,[['甲班','整洁比赛','','冠军','是'],['乙班','整洁比赛','','殿军','']]);
+ a.run('generateScript()');assert.equal(a.run('state.events.length'),1);assert.match(a.element('output').value,/在整洁比赛中，获奖班级有/);
+});
+test('regenerating an old mixed-group class block requests re-upload rather than mixing groups',()=>{
+ const a=app();a.setup();a.run("state.events[0].type='班级';state.events[0].rows[0].group='初中组';state.events[0].rows[1].group='高中组';generateScript()");
+ assert.match(a.element('generationStatus').innerHTML,/重新上传/);
+});
+test('restoring a legacy mixed class draft warns immediately and preserves manual output',()=>{
+ const a=app();a.setup();a.run('generateScript()');
+ a.run("state.events[0].type='班级';state.events[0].rows[0].group='初中组';state.events[0].rows[1].group='高中组';lastIssues=[]");
+ a.element('output').value='旧版稿件，包含手动修改';a.run('saveDraft()');
+ const b=app(a.storage);assert.equal(b.element('output').value,'旧版稿件，包含手动修改');
+ assert.match(b.element('generationStatus').innerHTML,/重新上传/);assert.doesNotMatch(b.element('generationStatus').innerHTML,/没有发现明显异常/);
+ b.run('saveDraft()');const c=app(b.storage);assert.equal((c.element('generationStatus').innerHTML.match(/重新上传/g)||[]).length,1);
+});
+test('external class groups preserve each group source order instead of ranking awards',()=>{
+ const a=app();classGroupWorkbook(a,[['甲冠军班','外赛','初中组','冠军','是'],['甲殿军班','外赛','','殿军','是'],['乙冠军班','外赛','高中组','冠军','是'],['乙殿军班','外赛','','殿军','']]);
+ a.context.fixture.Sheets['获奖资料'][0]['校内/校外']='校外';a.run('parseAwardRows(fixture);generateScript()');
+ const text=a.element('output').value;
+ assert.ok(text.indexOf('甲冠军班')<text.indexOf('甲殿军班'));assert.ok(text.indexOf('甲殿军班')<text.indexOf('高中组'));assert.ok(text.indexOf('乙冠军班')<text.indexOf('乙殿军班'));
+});
+
 module.exports={app};

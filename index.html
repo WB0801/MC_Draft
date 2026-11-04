@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>华仁周会司仪稿生成器 v2.6</title>
+<title>华仁周会司仪稿生成器 v2.6.1</title>
 <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="./word-export.js"></script>
@@ -51,7 +51,7 @@ a.btn{display:inline-block;text-decoration:none}.guide{margin-top:12px}.guide su
 </style>
 </head>
 <body>
-<header><div class="head"><div><h1>华仁周会司仪稿生成器</h1><div class="sub">v2.6 · 周会资料整理与 Word 成稿</div><div id="draftStatus" class="note" role="status" aria-live="polite">草稿自动保存在此浏览器。</div></div><button class="btn ghost" onclick="resetAll()">重新开始</button></div></header>
+<header><div class="head"><div><h1>华仁周会司仪稿生成器</h1><div class="sub">v2.6.1 · 周会资料整理与 Word 成稿</div><div id="draftStatus" class="note" role="status" aria-live="polite">草稿自动保存在此浏览器。</div></div><button class="btn ghost" onclick="resetAll()">重新开始</button></div></header>
 <main>
 
 <div class="card">
@@ -67,9 +67,10 @@ a.btn{display:inline-block;text-decoration:none}.guide{margin-top:12px}.guide su
  <details class="guide"><summary>填写说明与示例规则</summary><ul class="note">
  <li>「周会设置」填写日期、活动名称、流程、讲话人及部门颁奖人；纯讲话不需要填写获奖资料。</li>
  <li>「获奖资料」每行一位领奖代表；部门、校内/校外、比赛及类型可在连续资料中沿用。个人奖项请逐行填写。</li>
- <li>单项／班级：相邻同部门、同性质、同比赛、同类型资料会合并；重复填写比赛名称不会另开区块。团体／团体名单：同比赛下重新填写比赛名称，并更换原有的单位或团体奖项时会另开区块。</li>
+ <li>单项：相邻同部门、同性质、同比赛、同类型资料会合并；重复填写比赛名称不会另开区块。班级奖项另按组别分区块：明确更换组别时另开，后续组别留空则沿用该组；保留组别先后，校内只在各组内排序，校外保持资料顺序。</li>
+ <li>团体／团体名单：同比赛下重新填写比赛名称，并更换原有的单位或团体奖项时会另开区块。</li>
  <li>单位、带队／顾问老师、组别、团体奖项只在同一区块内沿用。新比赛或新区块请重新填写这些资料。</li>
- <li>同一比赛区块的「不合影」只看最后一行：填「是」不合影，留空则合影。团体重新排序后仍跟随各自区块。</li>
+ <li>每个区块的「不合影」只看最后一行：填「是」不合影，留空则合影；班级奖项按各组最后一行决定。奖项重新排序后，合影安排仍跟随原区块。</li>
  <li>校内奖项按低到高公布；校外保持资料顺序。「留步」仍由你在最终稿手动补。</li>
  </ul></details>
  <div id="summary" class="summary hidden"></div>
@@ -159,7 +160,11 @@ function restoreDraft(){
    restoringDraft=true;state=s;lastGeneratedOutput=draft.lastGeneratedOutput;
    $('fname').textContent=typeof draft.fileName==='string'?draft.fileName:'';
    renderAfterRead();$('output').value=draft.output;
-   if(draft.outputVisible){renderIssues(draft.lastIssues);renderParsed();$('outputCard').classList.remove('hidden');}
+   if(draft.outputVisible){
+     const issues=[...draft.lastIssues];
+     state.events.map(classGroupingIssue).filter(Boolean).forEach(x=>{if(!issues.some(y=>y.msg===x.msg))issues.push(x)});
+     renderIssues(issues);renderParsed();$('outputCard').classList.remove('hidden');
+   }
    $('draftStatus').textContent='已恢复此浏览器上次的草稿。';
  }catch(err){
    $('draftStatus').textContent='未能恢复本机草稿，可重新上传 Excel；编辑时请及时备份。';
@@ -372,6 +377,10 @@ function parseAwardRows(wb){
 
      // 类型明确改变，也开新区块
      if(typeRaw && effectiveType!==currentBlock.typeHint) startsNewBlock=true;
+
+     // 班级奖项必须按组别分别排序、分别读取最后一行的合影安排。
+     // 只有明确填写不同组别才开新区块，留空仍沿用本组。
+     if(effectiveType==='班级' && rawGroup && rawGroup!==carryGroup) startsNewBlock=true;
 
      // 关键修正：
      // 单项 / 班级：同一个比赛就算每一行都重复比赛名称，也继续视为同一比赛。
@@ -730,8 +739,16 @@ function renderTeamLike(ev,role,issues,isList,ctx={}){
  return out.join('\n');
 }
 
+function classGroupingIssue(ev){
+ if(ev.type!=='班级')return null;
+ const groups=new Set(ev.rows.map(r=>nz(r.group)));
+ return groups.size>1?{kind:'bad',msg:`「${ev.competition}」的旧草稿包含多个班级组别，请重新上传原 Excel 后生成，以恢复各组的合影安排。`}:null;
+}
 function renderClass(ev,role,issues,ctx={}){
- let out=[ctx.sameCompetition?'获奖班级有：':`在${ev.competition}中，获奖班级有：`];
+ const issue=classGroupingIssue(ev);
+ if(issue){issues.push(issue);return `【${issue.msg}】`;}
+ const group=nz(ev.rows[0]?.group);
+ let out=[`${localStart(ev.competition,group,!ctx.sameCompetition)}获奖班级有：`];
  const rows=[...ev.rows];
  if(ev.nature==='校内'){
    const unknown=rows.filter(r=>r.award&&rankScore(r.award)===null);
@@ -759,15 +776,7 @@ function renderClass(ev,role,issues,ctx={}){
 
  ev.extras.forEach(x=>out.push(x));
 
- if(!ev.noPhoto){
-   const otherTeachers=uniq(ev.rows.map(r=>r.teacher));
-   if(otherTeachers.length){
-     const t=otherTeachers.length===1?otherTeachers[0]:otherTeachers.slice(0,-1).join('、')+'及'+otherTeachers[otherTeachers.length-1];
-     out.push(`请${t}上台与获奖同学及老师、${role||'颁奖人'}一同合影留念。谢谢老师。`);
-   }else{
-     out.push(`请获奖同学及老师与${role||'颁奖人'}一同合影留念。谢谢老师。`);
-   }
- }
+ const end=photoEnding(ev,role);if(end)out.push(end);
  return out.join('\n');
 }
 function renderCustom(ev){return ev.extras.length?ev.extras.join('\n'):`【${ev.competition}：请在「补充句」填写自定义司仪文字】`}
@@ -890,6 +899,7 @@ function renderIssues(issues){
 function renderParsed(){
  const rows=state.events.map((ev,i)=>({
    区块:i+1,部门:ev.dept,性质:ev.nature,类型:ev.type,比赛:ev.competition,
+   组别:uniq(ev.rows.map(r=>r.group)).join('、'),
    团体奖:uniq(ev.rows.map(r=>r.teamAward)).join('、'),
    人数:uniq(ev.rows.map(r=>r.id||`${r.cls}|${r.name}`)).length,
    单位:uniq(ev.rows.map(r=>r.unit)).join('、'),
@@ -898,10 +908,10 @@ function renderParsed(){
    合影:ev.noPhoto?'不合影':'合影'
  }));
  $('tab-parsed').innerHTML=`<div class="tablewrap"><table><thead><tr>
- <th>#</th><th>部门</th><th>性质</th><th>类型</th><th>比赛</th><th>团体奖</th><th>人数</th><th>单位</th><th>班导师</th><th>顾问/带队</th><th>合影</th>
+ <th>#</th><th>部门</th><th>性质</th><th>类型</th><th>比赛</th><th>组别</th><th>团体奖</th><th>人数</th><th>单位</th><th>班导师</th><th>顾问/带队</th><th>合影</th>
  </tr></thead><tbody>${rows.map(r=>`<tr>
  <td>${r.区块}</td><td>${esc(r.部门)}</td><td>${esc(r.性质)}</td><td>${esc(r.类型)}</td>
- <td>${esc(r.比赛)}</td><td>${esc(r.团体奖)}</td><td>${r.人数}</td><td>${esc(r.单位)}</td><td>${esc(r.班导师)}</td><td>${esc(r.老师)}</td><td>${esc(r.合影)}</td>
+ <td>${esc(r.比赛)}</td><td>${esc(r.组别)}</td><td>${esc(r.团体奖)}</td><td>${r.人数}</td><td>${esc(r.单位)}</td><td>${esc(r.班导师)}</td><td>${esc(r.老师)}</td><td>${esc(r.合影)}</td>
  </tr>`).join('')}</tbody></table></div>`;
 }
 function switchTab(name,btn){
