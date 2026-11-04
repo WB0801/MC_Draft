@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>华仁周会司仪稿生成器 v2.5</title>
+<title>华仁周会司仪稿生成器 v2.6</title>
 <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="./word-export.js"></script>
 <style>
 :root{
  --bg:#f4f7fb;--card:#fff;--ink:#253445;--muted:#718096;--line:#dce5ee;
@@ -50,7 +51,7 @@ a.btn{display:inline-block;text-decoration:none}.guide{margin-top:12px}.guide su
 </style>
 </head>
 <body>
-<header><div class="head"><div><h1>华仁周会司仪稿生成器</h1><div class="sub">v2.5 · 周会资料整理与成稿</div><div id="draftStatus" class="note" role="status" aria-live="polite">草稿自动保存在此浏览器。</div></div><button class="btn ghost" onclick="resetAll()">重新开始</button></div></header>
+<header><div class="head"><div><h1>华仁周会司仪稿生成器</h1><div class="sub">v2.6 · 周会资料整理与 Word 成稿</div><div id="draftStatus" class="note" role="status" aria-live="polite">草稿自动保存在此浏览器。</div></div><button class="btn ghost" onclick="resetAll()">重新开始</button></div></header>
 <main>
 
 <div class="card">
@@ -104,6 +105,7 @@ a.btn{display:inline-block;text-decoration:none}.guide{margin-top:12px}.guide su
    <h2 style="margin:0">检查与成稿</h2>
    <button class="btn ghost push" onclick="copyText()">复制全文</button>
    <button class="btn ghost" onclick="downloadText()">下载 TXT</button>
+   <button class="btn primary" onclick="downloadWord()">下载 Word</button>
  </div>
  <div class="tabs" style="margin-top:12px">
    <button class="tab active" onclick="switchTab('script',this)">司仪稿</button>
@@ -910,6 +912,16 @@ async function copyText(){try{await navigator.clipboard.writeText($('output').va
 function downloadText(){
  const blob=new Blob([$('output').value],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');
  a.href=URL.createObjectURL(blob);a.download='周会司仪稿.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function downloadWord(){
+ try{
+   if(typeof MCWordExport==='undefined')throw new Error('Word 导出组件尚未加载，请刷新页面后重试。当前稿件仍保留。');
+   const text=$('output').value;
+   const blob=new Blob([MCWordExport.buildDocx(text)],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+   const url=URL.createObjectURL(blob),a=document.createElement('a');
+   a.href=url;a.download=MCWordExport.wordFilename(text);a.click();
+   setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }catch(err){alert(err.message||'Word 导出失败，请重试或先复制全文保留稿件。');}
 }
 function resetAll(){
  if(hasWork()&&!confirm('重新开始会清除当前资料、司仪稿和此浏览器的自动草稿，是否继续？'))return;
